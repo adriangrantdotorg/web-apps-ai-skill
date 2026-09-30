@@ -1,6 +1,6 @@
-# 🌐🖥️ URL Mac Apps
+# 🌐🖥️ Webs Apps AI SKILL
 
-![URL Mac Apps Banner](banner.png)
+![Web Apps Skill Banner](banner.png)
 
 > An AI skill that turns any website into a native-feeling macOS app: tabs, windows, themes and sign-in that just work.
 
@@ -51,11 +51,11 @@ Needs a Mac with the **[Swift toolchain](https://www.swift.org/install/macos/)**
 
 ```bash
 # Claude Code
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.claude/skills/url-mac-apps
+git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.claude/skills/web-apps-skill
 # Cursor
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.cursor/skills/url-mac-apps
+git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.cursor/skills/web-apps-skill
 # ChatGPT & Codex
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.agents/skills/url-mac-apps
+git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.agents/skills/web-apps-skill
 ```
 
 | **Platform** | **Skills folder** |
