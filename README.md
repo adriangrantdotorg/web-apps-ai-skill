@@ -1,4 +1,4 @@
-# 🌐🖥️ Webs Apps AI SKILL
+# 🌐🖥️ Web Apps AI Skill
 
 ![Web Apps AI Skill Banner](banner.png)
 
