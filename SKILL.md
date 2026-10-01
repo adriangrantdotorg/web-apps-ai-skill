@@ -1,5 +1,5 @@
 ---
-name: web-apps-skill
+name: web-apps-ai-skill
 description: "Battle-tested patterns and skeleton code for building macOS apps that wrap a single web URL in WKWebView — desktop wrappers for sites like Linear, Figma, ChatGPT, GitHub, Notion, X/Twitter, Discord, or any web app. Use this skill whenever the user wants to scaffold a new URL-based Mac app, add tabs / session save+restore / themes / a settings window / multi-window support / dock badge / keyboard-focus handling / permissions to an existing WKWebView wrapper, or asks to 'wrap [URL] as a Mac app', 'build a desktop client for [site]', or 'add tabs to my WKWebView app'. Covers: pure-Swift no-Xcode build pipeline, multi-window tab manager, JSON session save/restore with named sessions, AppKit Settings window with WKWebView-aware toggles, CSS theme injection (Stylus-compatible) with MutationObserver re-injection, custom About panel wiring, navigation allowlist + external-link routing, camera/mic permissions, zoom persistence, and desktop user-agent override. Trigger this even when the user describes the goal casually ('I want a Mac app version of X', 'turn this website into a desktop app') and the target is a web app rather than a native API."
 ---
 

@@ -1,10 +1,10 @@
 # 🌐🖥️ Webs Apps AI SKILL
 
-![Web Apps Skill Banner](banner.png)
+![Web Apps Ai Skill Banner](banner.png)
 
 > An AI skill that turns any website into a native-feeling macOS app: tabs, windows, themes and sign-in that just work.
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt) [![Swift](https://img.shields.io/badge/Swift-WKWebView-F05138.svg)](https://developer.apple.com/documentation/webkit/wkwebview) [![Version](https://img.shields.io/github/v/release/adriangrantdotorg/web-apps-skill?color=orange&label=Version)](https://github.com/adriangrantdotorg/web-apps-skill/releases) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/adriangrantdotorg/web-apps-skill/pulls)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt) [![Swift](https://img.shields.io/badge/Swift-WKWebView-F05138.svg)](https://developer.apple.com/documentation/webkit/wkwebview) [![Version](https://img.shields.io/github/v/release/adriangrantdotorg/web-apps-ai-skill?color=orange&label=Version)](https://github.com/adriangrantdotorg/web-apps-ai-skill/releases) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/adriangrantdotorg/web-apps-ai-skill/pulls)
 
 ---
 
@@ -51,11 +51,11 @@ Needs a Mac with the **[Swift toolchain](https://www.swift.org/install/macos/)**
 
 ```bash
 # Claude Code
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.claude/skills/web-apps-skill
+git clone https://github.com/adriangrantdotorg/web-apps-ai-skill.git ~/.claude/skills/web-apps-ai-skill
 # Cursor
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.cursor/skills/web-apps-skill
+git clone https://github.com/adriangrantdotorg/web-apps-ai-skill.git ~/.cursor/skills/web-apps-ai-skill
 # ChatGPT & Codex
-git clone https://github.com/adriangrantdotorg/web-apps-skill.git ~/.agents/skills/web-apps-skill
+git clone https://github.com/adriangrantdotorg/web-apps-ai-skill.git ~/.agents/skills/web-apps-ai-skill
 ```
 
 | **Platform** | **Skills folder** |
