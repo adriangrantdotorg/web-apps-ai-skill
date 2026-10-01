@@ -1,6 +1,6 @@
 # 🌐🖥️ Webs Apps AI SKILL
 
-![Web Apps Ai Skill Banner](banner.png)
+![Web Apps AI Skill Banner](banner.png)
 
 > An AI skill that turns any website into a native-feeling macOS app: tabs, windows, themes and sign-in that just work.
 
