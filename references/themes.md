@@ -467,7 +467,7 @@ If the user has existing Stylus user-styles, this skill handles them natively �
 
 ## Menu-bar Themes menu (the canonical UX)
 
-Every `url-mac-apps` app exposes theme switching as a top-level **Themes** menu in the menu bar, between **View** and **Window**. This is non-negotiable (see SKILL.md #12). A Settings-tab picker can exist as a secondary surface, but the menu bar is the primary one — it's faster, it's discoverable, and it matches what the user already expects from native macOS apps.
+Every `web-apps-ai-skill` app exposes theme switching as a top-level **Themes** menu in the menu bar, between **View** and **Window**. This is non-negotiable (see SKILL.md #12). A Settings-tab picker can exist as a secondary surface, but the menu bar is the primary one — it's faster, it's discoverable, and it matches what the user already expects from native macOS apps.
 
 ### Layout
 
