@@ -45,10 +45,6 @@ Before writing code, the AI loads rules taken from a shipped, daily-driven wrapp
 
 Needs a Mac with the **[Swift toolchain](https://www.swift.org/install/macos/)** (`xcode-select --install`) and an AI assistant that supports [Agent Skills](https://github.com/anthropics/skills).
 
-
-
----
-
 ```bash
 # Claude Code
 git clone https://github.com/adriangrantdotorg/web-apps-ai-skill.git ~/.claude/skills/web-apps-ai-skill
@@ -63,6 +59,8 @@ git clone https://github.com/adriangrantdotorg/web-apps-ai-skill.git ~/.agents/s
 | **[Claude Code](https://code.claude.com/docs/en/skills)** | `~/.claude/skills/` |
 | **[Cursor](https://cursor.com/docs/skills)** | `~/.cursor/skills/` |
 | **[ChatGPT & Codex](https://learn.chatgpt.com/docs/build-skills)** | `~/.agents/skills/` |
+
+---
 
 ## 💡 Usage
 
