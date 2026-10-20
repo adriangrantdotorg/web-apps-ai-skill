@@ -190,7 +190,7 @@ The TabManager isn't part of the `NSWindow`'s view hierarchy — it's a controll
 
 The trap: `@IBAction` style methods on AppDelegate operate on `mainWindow`, but the user expects them to operate on whichever window is *frontmost*. Always route through `NSApp.keyWindow` (or `mainWindow` as fallback).
 
-**Centralize the resolution in ONE shared property and route every action through it — the bug re-enters per-action, not per-app.** In one wrapper, reload and spell-check had hand-rolled keyWindow resolution while ⌘T, ⌘1-9, ⌘[/⌘], ⌘W, zoom, and Inspect Element all still hardcoded the main window's manager — and because a hidden-on-close main window is a first-class state in this architecture, each of those read as a *dead key* in secondary windows rather than as acting on the wrong window. Local `NSEvent` key-monitor branches are exactly as affected as menu items. The sweep that finds the class: `grep -n '[^.a-zA-Z]tabManager\.' AppDelegate.swift` — anything in an `@objc` action or key-monitor branch that isn't launch/restore/session wiring is a latent wrong-window bug.
+**Centralize the resolution in ONE shared property and route every action through it — the bug re-enters per-action, not per-app.** Reload and spell-check had hand-rolled keyWindow resolution while ⌘T, ⌘1-9, ⌘[/⌘], ⌘W, zoom, and Inspect Element all still hardcoded the main window's manager — and because a hidden-on-close main window is a first-class state in this architecture, each of those read as a *dead key* in secondary windows rather than as acting on the wrong window. Local `NSEvent` key-monitor branches are exactly as affected as menu items. The sweep that finds the class: `grep -n '[^.a-zA-Z]tabManager\.' AppDelegate.swift` — anything in an `@objc` action or key-monitor branch that isn't launch/restore/session wiring is a latent wrong-window bug.
 
 ```swift
 /// Non-content key windows (Settings, Sessions) carry no tabManager and fall
@@ -296,7 +296,7 @@ viewMenu.addItem(withTitle: "Zoom Out", action: #selector(zoomOut), keyEquivalen
 viewMenu.addItem(withTitle: "Actual Size", action: #selector(zoomReset), keyEquivalent: "0")
 ```
 
-(Key equivalents shown as the defaults — in the real app they come from the shortcut registry, like every other combo. Zoom is silent: no toast or notification when these fire.)
+(Key equivalents shown as the defaults — if your app has rebindable shortcuts, read them from its shortcut registry like every other combo. Keep zoom silent: no toast or notification when these fire.)
 
 For Cmd+1..9 (jump to tab N), add nine menu items in a "Window" or hidden submenu with `keyEquivalent: "1"` … `"9"`, each calling `selectTab(at:)` with a static N.
 

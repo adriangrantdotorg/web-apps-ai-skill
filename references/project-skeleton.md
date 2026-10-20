@@ -167,8 +167,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildWindow()
         webViewController.load(url: startPageURL)
         // build.sh --relaunch opens with `open -g` + this env var so dev rebuilds
-        // restart the app in the background without stealing focus. Skipping
-        // activate alone isn't enough — the
+        // restart the app in the background without stealing focus.
+        // Skipping activate alone isn't enough — the
         // ordered-front window would still visually cover the active app.
         if ProcessInfo.processInfo.environment["<APPNAME>_BACKGROUND_LAUNCH"] != nil {
             for window in NSApp.windows { window.orderBack(nil) }
@@ -281,13 +281,13 @@ Expand the `WebViewController` with patterns from `webview-config.md` — naviga
 
 This is the linchpin. It does seven things:
 
-1. Compiles the Swift sources — **FIRST, before touching the installed bundle**, so a compile error never leaves the user app-less (an `rm -rf`-first ordering deletes the bundle and then fails the build).
+1. Compiles the Swift sources — **FIRST, before touching the installed bundle**, so a compile error never leaves the user app-less (the old `rm -rf`-first ordering deleted the bundle and then failed the build).
 2. Assembles a real `.app` bundle structure.
 3. Copies `Info.plist`, the icon, and the binary into place.
-4. Stamps `CFBundleVersion` with a date+commit value (plus an About-panel display key).
+4. Stamps `CFBundleVersion` with a date+commit value (plus the About-panel display key).
 5. Strips quarantine xattrs.
 6. Ad-hoc-signs with entitlements.
-7. **Ships a `--relaunch` flag from day one.** Every new build.sh embeds the self-verifying quit → open → PID-verify cycle behind `--relaunch`; don't scaffold without it and "add it later" — it gets missed, and every rebuild then needs a hand-composed quit/sleep/open line. SIGTERM only (no AppleScript → no macOS Automation/TCC prompt), quit only AFTER a successful compile, absolute binary paths (`/usr/bin/pgrep`, `/usr/bin/pkill`, `/bin/sleep`, `/usr/bin/open`) so the flag works from launchers and automation tools with a stripped PATH, and a non-zero exit when the PID didn't change. **The relaunch is a BACKGROUND launch:** `open -g` + a `<APPNAME>_BACKGROUND_LAUNCH=1` env var that the AppDelegate gates on to skip `NSApp.activate` and `orderBack` its windows — dev rebuilds must never steal focus from the app you are working in (Dock/Finder launches activate normally).
+7. **Ships a `--relaunch` flag — include it from day one.** Every new build.sh embeds the self-verifying quit → open → PID-verify cycle behind `--relaunch`; do NOT scaffold without it and "add it later" — it gets missed, and every push reminder then has to hand-compose the three-part `pkill`/`sleep`/`open` line. SIGTERM only (no AppleScript → no macOS Automation/TCC prompt), quit only AFTER a successful compile, absolute binary paths (`/usr/bin/pgrep`, `/usr/bin/pkill`, `/bin/sleep`, `/usr/bin/open`) so the flag works from launchers and automation tools, and a non-zero exit when the PID didn't change. **The relaunch is a BACKGROUND launch:** `open -g` + a `<APPNAME>_BACKGROUND_LAUNCH=1` env var that the AppDelegate gates on to skip `NSApp.activate` and `orderBack` its windows — dev rebuilds must never steal focus from the app you are working in (Dock/Finder launches activate normally).
 
 ```bash
 #!/usr/bin/env bash
@@ -404,7 +404,7 @@ fi
 
 Make it executable: `chmod +x build.sh`.
 
-**SIGTERM caveat:** the quit path skips `applicationWillTerminate`, so the app must not save critical state ONLY there — use debounced/periodic autosave (the sessions pattern in `references/sessions.md` already does).
+**SIGTERM caveat:** the quit path skips `applicationWillTerminate`, so the app must not save critical state ONLY there — use debounced/periodic autosave (the sessions pattern in `references/sessions.md` already does). Apps whose launch does real work still get the flag; run the plain `./build.sh` when you don't want a relaunch.
 
 ### Why /Applications and not the source tree?
 
@@ -418,7 +418,7 @@ Files copied or downloaded inherit a `com.apple.quarantine` extended attribute. 
 
 1. Run `./build.sh` to verify it produces `/Applications/<AppName>.app`.
 2. Open `/Applications/<AppName>.app` to verify the URL loads.
-3. Bump `CFBundleShortVersionString` for each release; the About panel shows it beside the build stamp.
+3. Set the starting version in `Info.plist` and confirm the About panel shows it.
 4. Use `./build.sh --relaunch` for the edit-build-relaunch cycle from here on.
 
 If the user wants tabs, sessions, themes, or settings, read the matching reference file and integrate.

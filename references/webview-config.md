@@ -309,7 +309,7 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
     // MARK: - WKUIDelegate panels (file upload + JS dialogs) — ALL FOUR, from day one
     // WKWebView has no default UI for any of these; an unimplemented method is a
     // silent no-op. Missing runOpenPanelWith makes every <input type="file"> click
-    // dead ("Choose file does nothing").
+    // dead ("Choose file does nothing", e.g. a site's CSV import).
 
     func webView(_ webView: WKWebView,
                  runOpenPanelWith parameters: WKOpenPanelParameters,
@@ -384,7 +384,7 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
 
 ```
 
-Cookie/session sharing across tabs and windows is now handled by `WKWebsiteDataStore.default()`, which is process-wide automatically. The old `SharedWebKit.processPool = WKProcessPool()` trick (a singleton process pool wired into every WKWebView's config) is no longer needed on macOS 12+ — `WKProcessPool` has been formally deprecated and "no longer has any effect" per Apple's docs. If you find this pattern in older code built from this kit, delete the enum and the `config.processPool = …` line; nothing else needs to change.
+Cookie/session sharing across tabs and windows is now handled by `WKWebsiteDataStore.default()`, which is process-wide automatically. The old `SharedWebKit.processPool = WKProcessPool()` trick (a singleton process pool wired into every WKWebView's config) is no longer needed on macOS 12+ — `WKProcessPool` has been formally deprecated and "no longer has any effect" per Apple's docs. If you find this pattern in older `web-apps-ai-skill`-built code, delete the enum and the `config.processPool = …` line; nothing else needs to change.
 
 ## JavaScript clipboard access
 
@@ -495,7 +495,7 @@ Edge case: if the popup is somehow the *only* tab when it tries to close itself,
 
 ## Cross-domain SSO cookies (Intelligent Tracking Prevention)
 
-**Symptom:** a site that signs in against a *different* domain than it runs on hangs forever on its loading splash, or the sign-in bounces and never completes. One real example: the app runs on `app.clockify.me` but its SSO is brokered by `cake.com`; WebKit's Intelligent Tracking Prevention (ITP) classifies the auth domain's cookies as third-party tracking and partitions them away, so the SSO cookie the site looks for is never visible. Clockify surfaces this as `NO_SSO_COOKIE_FOUND (40009)` and never finishes loading. There's no error a user would understand — the app just looks broken on first launch.
+**Symptom:** a site that signs in against a *different* domain than it runs on hangs forever on its loading splash, or the sign-in bounces and never completes. For example: a wrapper for `app.clockify.me` but its SSO is brokered by `cake.com`; WebKit's Intelligent Tracking Prevention (ITP) classifies the auth domain's cookies as third-party tracking and partitions them away, so the SSO cookie the site looks for is never visible. Clockify surfaces this as `NO_SSO_COOKIE_FOUND (40009)` and never finishes loading. There's no error a user would understand — the app just looks broken on first launch.
 
 **Cause:** ITP is on by default in WKWebView and is built for a general-purpose browser visiting many sites. In a single-site wrapper the "third-party" domain is the site's *own* identity provider, so the privacy heuristic is actively wrong here.
 
@@ -662,10 +662,10 @@ com.apple.security.device.microphone
 
 Granting the mic makes recording *work*, but a wrapped meeting-transcription feature (Notion AI Meeting Notes, etc.) then transcribes **only the user's own voice**. The other participants come out of the Mac's speakers — that's *system audio*, and a web page has no API to hear it. The site's official Electron app captures system audio natively and mixes it in; a WKWebView wrapper must do the same or the feature ships half-broken. The mic/camera grant alone is easily mistaken for a full fix.
 
-The working architecture (fits in one `SystemAudioCapture.swift`, ~450 lines):
+The working architecture (fits in one `SystemAudioCapture.swift`, about 450 lines):
 
 1. **Native capture — Core Audio process tap (macOS 14.4+, gate with `@available`).** `CATapDescription(stereoGlobalTapButExcludeProcesses: [])` (set `isPrivate = true`, `muteBehavior = .unmuted`) → `AudioHardwareCreateProcessTap` → wrap in a **private aggregate device** (`kAudioAggregateDeviceIsPrivateKey: true`, default *system* output device as main sub-device + the tap under `kAudioAggregateDeviceTapListKey` with drift compensation, `kAudioAggregateDeviceTapAutoStartKey: true`) → `AudioDeviceCreateIOProcIDWithBlock` + `AudioDeviceStart`. No kexts, no virtual-device drivers, no Screen Recording permission.
-2. **Chunk + ship into the page.** In the IOProc, downmix whatever arrives (interleaved or per-channel buffers) to mono Float32 → Int16, accumulate ~200 ms chunks, base64, and `evaluateJavaScript("window.__sysAudio && window.__sysAudio.pushAll('<b64>', <rate>)")` on the main thread (~5 calls/sec — negligible). Don't resample natively; pass the tap's native rate and let Web Audio resample.
+2. **Chunk + ship into the page.** In the IOProc, downmix whatever arrives (interleaved or per-channel buffers) to mono Float32 → Int16, accumulate ~200 ms chunks, base64, and `evaluateJavaScript("window.__systemAudio && window.__systemAudio.pushAll('<b64>', <rate>)")` on the main thread (~5 calls/sec — negligible). Don't resample natively; pass the tap's native rate and let Web Audio resample.
 3. **JS side — monkey-patch `MediaDevices.prototype.getUserMedia` in a `.atDocumentStart` user script** (page world, main frame). When the site requests audio: resolve the real mic stream, build an `AudioContext` → `createMediaStreamDestination()`, connect the mic source *and* a gain node fed by the pushed chunks (schedule each as an `AudioBufferSourceNode` against a running `next` timestamp with a ~150 ms jitter buffer), and hand back `new MediaStream(videoTracks + [mixedTrack])`. The site transcribes both sides without knowing anything changed.
 4. **Stop paths — two, both required.** (a) JS: the site stops the *mixed* track it was handed, so patch `mixed.stop` to also stop the **real mic tracks** (else the orange mic dot stays on forever), post a stop message, close the context. (b) Native backstop: block-KVO `webView.microphoneCaptureState` — when it returns to `.none` (navigation, tab close, crashed page), tear down any sessions for that web view and stop the tap. Refcount sessions; stop the engine when none remain.
 5. **Identity spoofing.** The destination node's track is labeled "MediaStreamAudioDestinationNode" — override `label`/`getSettings`/`getCapabilities` to mirror the mic track so device pickers don't glitch.
@@ -830,7 +830,7 @@ Both `show` and `hide` keep the inspector *instance* alive — only its window i
 
 ## Traffic-light clearance (tab-less wrappers only)
 
-When the window uses `[.fullSizeContentView]` + `titlebarAppearsTransparent = true` (the recommended setup — see `tabs-and-windows.md`), the WKWebView's content extends underneath the title bar. If the app has a tab bar, the tab bar's leading edge starts at ~78px to reserve space for the traffic-light buttons and everything is fine.
+When the window uses `[.fullSizeContentView]` + `titlebarAppearsTransparent = true` (the recommended setup — see `tabs-and-windows.md`), the WKWebView's content extends underneath the title bar. If the app has a tab bar (Linear, Notion, etc.), the tab bar's leading edge starts at ~78px to reserve space for the traffic-light buttons and everything is fine.
 
 **Single-window, tab-less wrappers don't have that buffer.** The web content sits directly under the traffic lights and the site's leftmost top-bar UI (logo, hamburger menu, nav buttons) collides with the red/yellow/green circles. There are two CSS-injection fixes — pick whichever fits the site:
 
@@ -924,9 +924,9 @@ Trigger it from the same hooks as theme injection — `didFinish` and the `webVi
 
 1. `header[role="banner"]` — standard ARIA pattern, works for almost all Google products (Calendar, Gmail, Drive, etc.) and most modern web apps.
 2. `[role="banner"]` — same role, broader. Use if the banner is on a `div`, not a `header`.
-3. Site-specific class or id — last resort. Document it in the project's CLAUDE.md so future you knows the selector might rot if the site changes their HTML.
+3. Site-specific class or id — last resort. Document it in the project's notes or README so future you knows the selector might rot if the site changes their HTML.
 
-**Width.** 80px is enough for the three traffic-light buttons plus comfortable breathing room. Don't go below 78px — that's the de-facto minimum tab-bar offset across the macOS wrapper ecosystem.
+**Width.** 80px is enough for the three traffic-light buttons plus comfortable breathing room. Don't go below 78px — that's the usual tab-bar offset and the de-facto minimum across the macOS wrapper ecosystem.
 
 **Don't try to fix this at the AppKit level** by adding a toolbar accessory view or shrinking the web view's frame. The accessory view sits on top of the title bar, not pushing content underneath; shrinking the frame creates an ugly empty band above the page where the window background shows through. CSS injection is the right layer.
 
@@ -1036,13 +1036,13 @@ This is a real fork in the road, not a trap to avoid — pick deliberately:
 
 **Turn it off (standard title bar).** Use a plain titled window — `[.titled, .closable, .miniaturizable, .resizable]`, `titlebarAppearsTransparent = true`, `titleVisibility = .visible`, **no** `fullSizeContentView`. The web view now sits *below* a thin (~28pt) native title bar instead of under it. That one change removes the entire fragile-CSS surface: **no drag overlay** (the native title bar drags itself), **no traffic-light clearance**, **no header-margin CSS**, **nothing keyed off the site's DOM** — so a site redesign can't break your chrome. The transparent title bar still blends into the window background for a tidy look, and `titleVisibility = .visible` gives you the page title in the bar for free (handy when there's no tab bar to host it). The only cost is that ~28pt strip isn't part of the web page.
 
-**Rule of thumb:** if the wrapped site's header is complex or changes often, or you simply don't want to babysit per-site chrome CSS, **turn `fullSizeContentView` off**. If the seamless under-chrome aesthetic is the priority and you're willing to maintain the CSS, keep it on and spend the overlay code.
+**Rule of thumb:** if the wrapped site's header is complex or changes often, or you simply don't want to babysit per-site chrome CSS, **turn `fullSizeContentView` off** — a standard title bar removes all DOM-dependent chrome CSS. If the seamless under-chrome aesthetic is the priority and you're willing to maintain the CSS, keep it on and spend the overlay code.
 
 ## Anti-patterns
 
 - **Don't add `WKWebsiteDataStore.nonPersistent()`.** Users get logged out on every launch. Use `.default()`.
 - **Don't override `WKNavigationDelegate.decidePolicyFor` and forget the subframe case.** You'll break OAuth iframes, embedded videos, payment widgets, and CAPTCHA. Always allow subframes.
-- **Don't load the OAuth request into the *same* web view (or return `nil`) from `createWebViewWith`.** This is the load-in-same-view trap — `window.open()` returns `null` and `window.opener` is never wired, so "Continue with Google/Apple" opens a **black/blank window** that never completes sign-in. Return a real, freshly-created `WKWebView` (a new foreground tab) so the opener relationship is live, and implement `webViewDidClose` to clean up the spent popup tab. (The same-view approach is a common mistake; see *OAuth popups*.)
+- **Don't load the OAuth request into the *same* web view (or return `nil`) from `createWebViewWith`.** This is the load-in-same-view trap — `window.open()` returns `null` and `window.opener` is never wired, so "Continue with Google/Apple" opens a **black/blank window** that never completes sign-in. Return a real, freshly-created `WKWebView` (a new foreground tab) so the opener relationship is live, and implement `webViewDidClose` to clean up the spent popup tab. (See *OAuth popups*.)
 - **Don't forget `webViewWebContentProcessDidTerminate(_:)`.** Without it the app silently blanks to the window background color after long uptime or sleep/wake and never recovers. See *Content-process termination recovery*.
 - **Don't reload every tab unconditionally on wake.** Gate recovery on the per-tab "terminated" flag — a blanket reload-on-wake throws away scroll position and in-progress state on healthy tabs and is immediately noticeable.
 - **Don't put zoom in `WKPreferences`.** It doesn't exist there. `webView.pageZoom` is the property.

@@ -28,7 +28,7 @@ Themes live in **two folders the user can get at easily** — deliberately *not*
     └── <appname> - compact.css
 ```
 
-**Default the Universal themes root to a shared, user-visible folder such as `~/Themes/`** when scaffolding a new app, so all of the user's wrapper apps can point at the same repo. Don't bake it in as an unchangeable constant, though: store the resolved path in a configurable setting (defaulting to that location) so it stays overridable. And **at setup/first-run, check that the folder exists — if it doesn't, ask the user where their themes folder is** rather than silently creating an empty one in the wrong place (the Custom subfolder *is* created automatically once the root is known). What matters, beyond the default path:
+**Default the Universal themes root to a shared, easy-to-reach folder such as `~/Themes/`** when scaffolding a new app — ideally one repo that all of your wrapper apps point at. Don't bake it in as an unchangeable constant, though: store the resolved path in a configurable setting (defaulting to that location) so it stays overridable. And **at setup/first-run, check that the folder exists — if it doesn't, ask the user where their themes folder is** rather than silently creating an empty one in the wrong place (the Custom subfolder *is* created automatically once the root is known). What matters, beyond the default path:
 
 1. Themes are in an **accessible** location the user can open, edit, and version-control — not inside the app bundle, not in Application Support.
 2. The **Universal** folder is **shared** (multiple wrapper apps read the same directory) while **Custom** is a per-app subfolder of it. Scanning is **non-recursive**, so the Universal scan does not re-list the Custom subfolder — the two lists stay distinct.
@@ -467,7 +467,7 @@ If the user has existing Stylus user-styles, this skill handles them natively �
 
 ## Menu-bar Themes menu (the canonical UX)
 
-Every `web-apps-ai-skill` app exposes theme switching as a top-level **Themes** menu in the menu bar, between **View** and **Window**. This is non-negotiable (see SKILL.md #12). A Settings-tab picker can exist as a secondary surface, but the menu bar is the primary one — it's faster, it's discoverable, and it matches what the user already expects from native macOS apps.
+Every `web-apps-ai-skill` app exposes theme switching as a top-level **Themes** menu in the menu bar, between **View** and **Window**. This is non-negotiable (see SKILL.md #12). A Settings-tab picker can exist as a secondary surface, but the menu bar is the primary one — it's faster, it's discoverable, and it matches what the user already expects from native Mac apps.
 
 ### Layout
 
@@ -621,7 +621,7 @@ When `ThemeManager.reload()` posts `themesChanged`, every `WebViewController` in
 
 ## Anti-patterns
 
-- **Don't bundle themes in the app — but don't bury them in Application Support either.** Put them in an accessible, user-controlled location (its own folder/repo), with the Universal folder shared across apps and a Custom subfolder per app. Default the root to a visible folder such as `~/Themes/` but read it from a configurable setting so it stays overridable (don't bake it in as an unchangeable constant), and if the default doesn't exist at setup, ask the user where their themes folder is. The whole point is that the user can open, edit, version-control, and reuse these files across several wrapper apps.
+- **Don't bundle themes in the app — but don't bury them in Application Support either.** Put them in an accessible, user-controlled location (its own folder/repo), with the Universal folder shared across apps and a Custom subfolder per app. Default the root to a folder such as `~/Themes/` but read it from a configurable setting so it stays overridable (don't bake it in as an unchangeable constant), and if the default doesn't exist at setup, ask the user where their themes folder is. The whole point is that the user can open, edit, version-control, and reuse these files across several wrapper apps.
 - **Don't `@import` external CSS URLs.** WKWebView will fetch them, which is slow on page load and breaks offline. Inline the CSS into the theme file.
 - **Don't inject themes only via `evaluateJavaScript` in `didFinish`.** The page has already painted by the time `didFinish` fires, so the user sees the site's default styles for a beat before the theme snaps in — a visible flash on every launch and reload. Use `WKUserScript` at `.atDocumentStart` for the initial paint, then `evaluateJavaScript` for live theme switches and SPA navigations. The IIFE handles `(document.head || document.documentElement)` so the still-being-built DOM isn't a problem.
 - **Don't let two Universal themes stack.** Two full palettes at once produces unpredictable specificity wars, which is exactly why Universal themes are single-select. Custom themes *do* stack (concatenated, Custom last) — that's intentional, for layering an app-specific tweak on top of one Universal palette — but a Custom theme is expected to be a targeted override, not a second full palette. Enforce the single-Universal rule in the model (`toggle`/`discover`), not just the UI, so old persisted state with 2+ Universal enabled self-heals on launch.
