@@ -39,14 +39,17 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
     ]
     // Hosts that match an authDomains wildcard (e.g. *.google.com is kept allowed
     // for SSO) but are actually CONTENT the user expects in their real browser.
-    // Checked BEFORE the allowlist on user clicks / popups. Tune per wrapped site.
+    // Prefer a rule over this list: a list always misses the next product, and a
+    // check on user clicks alone misses blank-popup-then-location links. Use the
+    // rule in "Navigation allowlist — design notes" (every *.google.com except
+    // sign-in is content, one opensInDefaultBrowser(url, from:) on every path).
     private let contentHosts: [String] = [
         "docs.google.com", "drive.google.com", "sheets.google.com",
         "slides.google.com", "forms.google.com", "sites.google.com",
         "calendar.google.com", "meet.google.com", "mail.google.com",
         "keep.google.com", "photos.google.com",
-        // Google AI products are content too (otherwise clicked Gemini
-        // chat links get hijacked into an in-app tab).
+        // Google AI products are content too (otherwise clicked
+        // Gemini chat links get hijacked into an in-app tab).
         "gemini.google.com", "notebooklm.google.com", "aistudio.google.com",
     ]
     private let startPageURL: URL
@@ -309,7 +312,7 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
     // MARK: - WKUIDelegate panels (file upload + JS dialogs) — ALL FOUR, from day one
     // WKWebView has no default UI for any of these; an unimplemented method is a
     // silent no-op. Missing runOpenPanelWith makes every <input type="file"> click
-    // dead ("Choose file does nothing", e.g. a site's CSV import).
+    // dead ("Choose file does nothing").
 
     func webView(_ webView: WKWebView,
                  runOpenPanelWith parameters: WKOpenPanelParameters,
@@ -437,7 +440,7 @@ private func setZoom(_ z: CGFloat) {
 }
 ```
 
-Wire to View menu with `Cmd+=`, `Cmd+-`, `Cmd+0`. Apply on every `didFinish` so SPA navigations don't reset. Apply the SAME level to every `WKWebView` the app owns — the Settings window included, never a per-view exception (SKILL.md item 37 clause 8). These three View-menu items are a standing default in EVERY Mac app, not only wrappers — full rule (order, level row, rebindable combos, no toast/notification on zoom): SKILL.md item 37.
+Wire to View menu with `Cmd+=`, `Cmd+-`, `Cmd+0`. Apply on every `didFinish` so SPA navigations don't reset. Apply the SAME level to every `WKWebView` the app owns — the Settings window included, never a per-view exception (SKILL.md item 37, clause 8). These three View-menu items are a standing default in EVERY Mac app, not only wrappers — full rule (order, level row, rebindable combos, no toast/notification on zoom): SKILL.md item 37.
 
 ## Navigation allowlist — design notes
 
@@ -445,8 +448,9 @@ Two layers of allowlist:
 
 1. **`primaryDomains`** — the wrapped site itself and its CDNs. Always allowed in-app. These should be apex domains plus subdomain wildcards (`hasSuffix`-style).
 2. **`authDomains`** — third-party identity providers and CAPTCHA. Allowed in-app *during navigation*, so OAuth callbacks complete and Cloudflare challenges render. Don't include analytics/tracking domains — they only run via subframes and are covered by the "always allow subframes" rule.
-3. **`contentHosts`** — a *carve-out* from the allowlist, not a third allow layer. **Auth allowlist ≠ content allowlist.** You allowlist `google.com` so SSO works, but that wildcard also captures `docs.google.com`, `drive.google.com`, `calendar.google.com`, `mail.google.com`, … — *content* the user expects to open in their real browser. A clicked Google Doc inside a Notion/Linear wrapper getting hijacked into an in-app tab is the classic symptom. **Include Google's AI products too**: `gemini.google.com`, `notebooklm.google.com`, `aistudio.google.com` — a clicked Gemini chat link is content exactly like a Doc. List these subdomains explicitly and check them **before** the allowlist, in *both* `decidePolicyFor` and `createWebViewWith`. Gate the `decidePolicyFor` check on `navigationType == .linkActivated` so programmatic OAuth redirects (which are `.other`) still complete in-app.
-4. **Same-site guard on the `contentHosts` carve-out.** Multi-tab wrappers may host one of those products as a tab of its own (e.g. a "Google Gemini" tab alongside Notion). A blanket carve-out then bounces that tab's *own* links to the external browser. Have the matcher return the matched entry (not a Bool) and bounce only when the clicked URL's matched host differs from the current page's: `contentHost(matching: url.host) != contentHost(matching: webView.url?.host)`. In-product clicks stay in-app; cross-site clicks (a Gemini link inside a Notion page) go external.
+3. **Content carve-out — a RULE, not a list.** **Auth allowlist ≠ content allowlist.** You allowlist `google.com` so SSO works, but that wildcard also captures Docs, Drive, Calendar, Gmail, Gemini, NotebookLM, AI Studio, Search: *content* the user expects in their real browser. A list of content subdomains always misses the next product (a newly launched one such as Gemini), so invert it: every `*.google.com` host EXCEPT the sign-in hosts (`accounts.google.com`) is content. Check it on EVERY path, not only `.linkActivated`: Notion opens some external links as a blank `window.open()` and then sets the popup's `location`, which arrives in the new web view as a programmatic (`.other`) main-frame load. Put the whole decision in one pure function, `opensInDefaultBrowser(url, from: currentURL)`, and call it from `decidePolicyFor` (main frame, ⌘/middle-click, embed clicks) and `createWebViewWith`.
+4. **Same-site guard, generalized.** A tab already on Google (mid sign-in, or a Google page opened in-app on purpose) keeps its own Google links: content opens outside only when the CURRENT page is not a Google host. That is what lets the OAuth chain (`accounts.google.com` → `www.google.com/…` → back to the site) finish, since every hop starts from a Google page.
+5. **Blank popup shells close themselves.** Mark tabs created for `window.open` (`isPopupShell = true`, cleared on the first `didCommit`). When a shell's first main-frame navigation goes to the browser, open it there and call the tab-closing hook (`webViewDidClose` path), so no empty tab is left behind.
 
 What gets opened in the default browser:
 
@@ -495,7 +499,7 @@ Edge case: if the popup is somehow the *only* tab when it tries to close itself,
 
 ## Cross-domain SSO cookies (Intelligent Tracking Prevention)
 
-**Symptom:** a site that signs in against a *different* domain than it runs on hangs forever on its loading splash, or the sign-in bounces and never completes. For example: a wrapper for `app.clockify.me` but its SSO is brokered by `cake.com`; WebKit's Intelligent Tracking Prevention (ITP) classifies the auth domain's cookies as third-party tracking and partitions them away, so the SSO cookie the site looks for is never visible. Clockify surfaces this as `NO_SSO_COOKIE_FOUND (40009)` and never finishes loading. There's no error a user would understand — the app just looks broken on first launch.
+**Symptom:** a site that signs in against a *different* domain than it runs on hangs forever on its loading splash, or the sign-in bounces and never completes. For example, a wrapper for `app.clockify.me` hits this because that site's SSO is brokered by `cake.com`: WebKit's Intelligent Tracking Prevention (ITP) classifies the auth domain's cookies as third-party tracking and partitions them away, so the SSO cookie the site looks for is never visible. Clockify surfaces this as `NO_SSO_COOKIE_FOUND (40009)` and never finishes loading. There's no error a user would understand — the app just looks broken on first launch.
 
 **Cause:** ITP is on by default in WKWebView and is built for a general-purpose browser visiting many sites. In a single-site wrapper the "third-party" domain is the site's *own* identity provider, so the privacy heuristic is actively wrong here.
 
@@ -660,9 +664,9 @@ com.apple.security.device.microphone
 
 ### Meeting transcription hears only the user's side — mic access is not enough
 
-Granting the mic makes recording *work*, but a wrapped meeting-transcription feature (Notion AI Meeting Notes, etc.) then transcribes **only the user's own voice**. The other participants come out of the Mac's speakers — that's *system audio*, and a web page has no API to hear it. The site's official Electron app captures system audio natively and mixes it in; a WKWebView wrapper must do the same or the feature ships half-broken. The mic/camera grant alone is easily mistaken for a full fix.
+Granting the mic makes recording *work*, but a wrapped meeting-transcription feature (Notion AI Meeting Notes, etc.) then transcribes **only the user's own voice**. The other participants come out of the Mac's speakers — that's *system audio*, and a web page has no API to hear it. The site's official Electron app captures system audio natively and mixes it in; a WKWebView wrapper must do the same or the feature ships half-broken.
 
-The working architecture (fits in one `SystemAudioCapture.swift`, about 450 lines):
+The working architecture (all in one `SystemAudioCapture.swift`, ~450 lines):
 
 1. **Native capture — Core Audio process tap (macOS 14.4+, gate with `@available`).** `CATapDescription(stereoGlobalTapButExcludeProcesses: [])` (set `isPrivate = true`, `muteBehavior = .unmuted`) → `AudioHardwareCreateProcessTap` → wrap in a **private aggregate device** (`kAudioAggregateDeviceIsPrivateKey: true`, default *system* output device as main sub-device + the tap under `kAudioAggregateDeviceTapListKey` with drift compensation, `kAudioAggregateDeviceTapAutoStartKey: true`) → `AudioDeviceCreateIOProcIDWithBlock` + `AudioDeviceStart`. No kexts, no virtual-device drivers, no Screen Recording permission.
 2. **Chunk + ship into the page.** In the IOProc, downmix whatever arrives (interleaved or per-channel buffers) to mono Float32 → Int16, accumulate ~200 ms chunks, base64, and `evaluateJavaScript("window.__systemAudio && window.__systemAudio.pushAll('<b64>', <rate>)")` on the main thread (~5 calls/sec — negligible). Don't resample natively; pass the tap's native rate and let Web Audio resample.
