@@ -31,12 +31,12 @@ Before writing code, the AI loads rules taken from a shipped, daily-driven wrapp
 
 ![The same request with and without the skill: without it, four tries through dead keys, a white flash and a blank sign-in window; with it, one try and time left over](docs/media/with-vs-without-skill.svg)
 
-- 🗂️ **Real tabs and windows** — ⌘T, ⌘W, several windows, the red button never quits
+- 🗂️ **Real tabs, windows and menus** — ⌘T, ⌘W, Edit menu, zoom; the red button never quits
 - 🔐 **Sign-in that completes** — Google and Apple popups return to the app instead of a blank window
 - 💾 **Picks up where you left off** — tabs, windows and positions restored before anything shows
 - 🎨 **Themes without the flash** — Stylus-style CSS injected before the page paints, switched from the menu bar
 - 🔗 **Links go to the right place** — the site stays in-app, everything else opens in your browser
-- ⌨️ **Keys and menus work on launch** — focus, Edit menu, zoom and native right-click menus the page fills in
+- 🧩 **Page features that just work** — file uploads, alerts, Copy buttons and native right-click menus
 - 🩺 **Recovers and explains itself** — blank web views reload; logs and state dumps show why
 
 ---
