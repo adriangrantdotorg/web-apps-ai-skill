@@ -18,7 +18,7 @@
 | --- | :---: | :---: |
 | 🔁 Tries until it works | 🧪 3–5 | **1** |
 | 🧰 Tools to install | 🧪 full Xcode | **Swift command-line tools** |
-| 🪤 Known WebKit traps covered | 🧪 found one by one | **40+ up front** |
+| 🪤 Known WebKit traps covered | 🧪 found one by one | **70+ up front** |
 | 🪙 AI usage burned on retries | 🧪 ~4× | **1×** |
 
 <sub>🧪 estimate</sub>
@@ -36,7 +36,7 @@ Before writing code, the AI loads rules taken from a shipped, daily-driven wrapp
 - 💾 **Picks up where you left off** — tabs, windows and positions restored before anything shows
 - 🎨 **Themes without the flash** — Stylus-style CSS injected before the page paints, switched from the menu bar
 - 🔗 **Links go to the right place** — the site stays in-app, everything else opens in your browser
-- 🧩 **Page features that just work** — file uploads, alerts, Copy buttons and native right-click menus
+- 🧩 **Page features that just work** — uploads, alerts, Copy buttons, native right-click menus, hidden nag banners
 - 🩺 **Recovers and explains itself** — blank web views reload; logs and state dumps show why
 
 ---
